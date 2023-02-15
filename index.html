@@ -26,9 +26,9 @@
             <div class="collapse navbar-collapse" id="navbarResponsive">
                 <ul class="navbar-nav">
                     <li class="nav-item"><a class="nav-link js-scroll-trigger" href="#about">Home</a></li>
-                    <li class="nav-item"><a class="nav-link js-scroll-trigger" href="#lab 1">1: The Artemis board</a></li>
+                    <li class="nav-item"><a class="nav-link js-scroll-trigger" href="#lab 1">1: The Artemis Board</a></li>
+                    <li class="nav-item"><a class="nav-link js-scroll-trigger" href="#lab 2">2: Bluetooth Communication</a></li>
                     <!--
-                    <li class="nav-item"><a class="nav-link js-scroll-trigger" href="#education">Education</a></li>
                     <li class="nav-item"><a class="nav-link js-scroll-trigger" href="#skills">Skills</a></li>
                     <li class="nav-item"><a class="nav-link js-scroll-trigger" href="#interests">Interests</a></li>
                     <li class="nav-item"><a class="nav-link js-scroll-trigger" href="#awards">Awards</a></li>
@@ -183,13 +183,104 @@
                     <h2 class="mb-5">Lab 2</h2>
                     <div class="d-flex flex-column flex-md-row justify-content-between mb-5">
                         <div class="flex-grow-1">
-                            <h3 class="mb-0">The Artemis Board</h3>
-                            <div class="subheading mb-3">Introduction</div>
-                            <p>This lab get me familar with SparkFun Artemis Nano board, which is the mini controller we 
-                                use for this course. It integrated LED, temperature sensor, microphone, bluetooth module and so on.
-                                In this lab, I will go through the <a href="https://cei-lab.github.io/FastRobots-2023/Lab1.html">lab manual</a>
-                                and setup Artemis Nano board.
+                            <h3 class="mb-0">Bluetooth Communication</h3>
+                            <div class="subheading mb-3">Pre Lab</div>
+                            <p>Setup</p>
+                            <p> In the pre lab, I update all requred packages and install virtual environment for the project. And I download the 
+                                <a href="https://cornell.app.box.com/s/aivj9ad3uv74lmpvxz8s64aamgz6azt1">codebase</a> provided by course.
+                                The codebase include 4 bluetooth schetches for Artemis borad and 
+                                python scripts for laptop side. </p>
+
+                            <p>    
+                                Figure below shows the MAC address published by Artemis. I need to change <code>7</code> to <code>07</code>
+                                to make it work. Also, I need to generate UUID for the Artemis, recording both MAC address and UUID in python 
+                                yaml file to build connection with Artemis.
                             </p>
+                            <span class="img-fluid img-centered"><img class="img-fluid mx-auto mb-2" src="assets/img/lab2_MAC address.png" alt="..." /></span>
+                            <p> Following figure shows the UUID</p>
+                            <span class="img-fluid img-centered"><img class="img-fluid mx-auto mb-2" src="assets/img/lab2_UUID generated.png" alt="..." /></span>
+
+                            <p>Codebase</p>
+                            <p>
+                                The purpose of the MAC address is to uniquely identify my Artemis device, so that I can easily locate it among other devices that support Bluetooth.
+                                The UUID (Universal Unique Identifier) help laptop differentiate the different data types from Artemis.
+                                The Arduino schetches use bluetooth library to build bluetooth connection. It includes features such as send and receive different types of data.
+                                And it containes types of robot command. The workflow is: laptop send a command via bluetooth, Artemis receive bluetooth and execute the command. 
+                                Then Artemis send collected data back to laptop.
+                            </p>
+                            <div class="subheading mb-3">Bluetooth Connenction</div>
+                            <p>
+                                I am able to connect bluetooth in Windows 11 after I follow this <a href="https://edstem.org/us/courses/33676/discussion/2518464">instruction</a> on Ed Discussion. 
+                                Following figure shows laptop connect to Artemis successfully.
+                            </p>
+                            <span class="img-fluid img-centered"><img class="img-fluid mx-auto mb-2" src="assets/img/lab2_bluetooth connection.png" alt="..." /></span>
+                            <div class="subheading mb-3">Echo Command</div>
+                            <p>
+                                To get Echo command working properly, I need to add a command in python side to send 
+                                the command, and also a command on Artemis to receive the Echo command and send whatever laptop said back to the laptop. 
+                                I use <code>ble.send_command(CMD.ECHO,'HiHello')</code> in python to send robot the message, and receive message from Artemis over bluetooth by <code>ble.receive_string(ble.uuid['RX_STRING'])</code>.
+                                In addition, I add a command case in Artemis, which clear the chracter array and append new character to the enhanced string. Then write the message back to laptop use <code>tx_characteristic_string.writeValue(tx_estring_value.c_str())</code>
+                                Below is the output from terminal:
+                            </p>
+                            <span class="img-fluid img-centered"><img class="img-fluid mx-auto mb-2" src="assets/img/lab2_echo.png" alt="..." /></span>
+
+                            <div class="subheading mb-3">Get Time Command</div>
+                            <p>
+                                The second task is very similar to the Echo command. The only 2 difference is: First, I don't need any input from 
+                                laptop. Second, instead of transfer string, Artemis transfer float back to laptop. In the python side, I use 
+                                <code>ble.send_command(CMD.GET_TIME_MILLIS,'')</code>. In the Arduino schetch, I append <code>tx_estring_value.append((float)millis())</code>
+                                I get output as following figure shown.
+                            </p>
+                            <span class="img-fluid img-centered"><img class="img-fluid mx-auto mb-2" src="assets/img/lab2_task2.png" alt="..." /></span>
+
+                            <div class="subheading mb-3">Notification Handler</div>
+                            <p>
+                                Since we don't know the exact time of receving message back from Artemis, we want to create a notification handler to run
+                                asynchronous, and publish the data whenever laptop get them. I create the handler as following figure shown. It first decode the message then print the timestamp.
+                                Then extract and print time in terminal.
+                            </p>
+                            <span class="img-fluid img-centered"><img class="img-fluid mx-auto mb-2" src="assets/img/lab2_task 3 python.png" alt="..." /></span>
+
+                            <div class="subheading mb-3">Get Temperature Command</div>
+                            <p>
+                                To get temperature from Artemis, I use <code>tx_estring_value.append((float)getTempDegC())</code> to append temperature to estring along with timestamp. 
+                                In the Arduino schetch, I use a for loop to collect data and set time interval as 1s. Then send all 5 pairs of data via bluetooth once it done with data collection.
+                                Then I get result as shown:
+                            </p>
+                            <span class="img-fluid img-centered"><img class="img-fluid mx-auto mb-2" src="assets/img/lab2_task 4 terminal.png" alt="..." /></span>
+                            <p>
+                                However, if we want to get data as fast as possible in 5s, there will be a characteristic size limit. So I create 2 global arrays in Arduino schetch and put pair of temperature with timestamp in arrays.
+                                One array is used to store time and another is for temperature. After that, I match pairs and send data to laptop.
+                                Since python disconnect bluetooth without waiting to receive all data, I manually add sleeping time in python to wait for data transmission. The following video shows the result.
+                            </p>
+                            <div class="embed-container">
+                            
+                                <iframe width="347" height="618" src="https://www.youtube.com/embed/hBUv2W7uXds" title="lab2 task 5" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+                            </div>
+                            <div class="subheading mb-3">Limitation</div>
+                            <p>
+                                If we are collecting data at 150HZ frequency, we have 150 samples per second. While 1 sample contain 16 bit, so 150 samples/s is equal to 2400 bit/s. 
+                                The Artemis have 384 kB RAM, which equal to 3072000 bit, because 1 Byte equals to 8 bit.
+                                Therefore, without clear memory, assume all RAM is available, we can use 3072000 bit divived by 2400 bit/s, which is 1280s. So the maximum time we can use to store data is 1280s, 
+                                under the assumption of 5s of 16-bit values taken at 150HZ.
+                            </p>
+
+                            <div class="subheading mb-3">Effective Data Rate and Overhead</div>
+                            <p>
+                                I calculate effective data rate by using size of data in Byte divided by time used to transfer data. Times start at the moment of sending command from laptop to Artemis and end at the moment gets to
+                                the notification handler. In the Artemis side, I append in string length to add byte. I test data size of 5,50,100,120 and 150. From figure below we can see
+                                the larger the data size is, the higher effective data rate is.
+                            </p>
+                            <span class="img-fluid img-centered"><img class="img-fluid mx-auto mb-2" src="assets/img/lab2_data rate.png" alt="..." /></span>
+
+                            <div class="subheading mb-3">Reliability</div>
+                            <p>
+                                When I send data at a higher rate from robot to the computer, my computer read all the data published without missing anything.
+                                Because when notification handler processing speed is slower than Artemis sending speed, data will be stored on my laptop's system, 
+                                which is much powerful than that of Artemis. The only problem is I have to put sleeping time in python to wait until data transfer
+                                finish. Otherwise the python will disconnect bluetooth before data transfer complete.
+                            </p>
+
                         </div>
                     </div>
                 </div>
